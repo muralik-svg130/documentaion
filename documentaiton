@@ -1,0 +1,140 @@
+-
+Kubectl Installation
+cd
+mv kubectl kubectl_1.24 --
+mv bin bin_1.24 --
+curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.23.15/2023-01-11/bin/linux/amd64/kubectl 
+chmod +x ./kubectl
+mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin --
+kubectl version
+------------------------------------------------------------------------------------------------------
+export the eks config file
+aws eks update-kubeconfig --region ap-south-1 --name example
+
+-------------------------------------------------------------------------------
+how to install the nginx-contorller
+
+helm repo add nginx-stable https://helm.nginx.com/stable --
+helm repo update --
+helm install nginx-ingress nginx-stable/nginx-ingress --set rbac.create=true --
+kubectl get pods --all-namespaces -l app=nginx-ingress-nginx-ingress --
+
+---------------------------------------------------------------------
+installing of sealed secret
+curl -Lo kubeseal.tgz https://github.com/bitnami-labs/sealed-secrets/releases/download/0.20.2/kubeseal-0.20.2-linux-amd64.tar.gz --
+tar +xf kubeseal.tgz --
+chmod +x .kubeseal --
+mkdir -p $HOME/bin && cp ./kubeseal $HOME/bin/kubeseal && export PATH=$PATH:$HOME/bin --
+echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc --
+kubeseal --controller-namespace=sealed-secrets --controller-name=sealed-secrets --fetch-cert > sealed-public.pem
+kubeseal --contorller-namespace=sealed-secret --controller-name=sealed-secrets --format=yaml --cert=sealed-public.pem <secret.yaml> output.
+
+if above is not working need to go with below one
+
+helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+helm install sealed-secrets sealed-secrets/sealed-secrets
+kubeseal --controller-namespace=sealed-secrets --controller-name=sealed-secrets --fetch-cert > sealed-public.pem
+kubeseal  --controller-name=sealed-secrets --format=yaml --cert=sealed-public.pem <secret.yaml> output.yaml
+
+
+[root@ip-20-0-102-181 JENKINS]# helm repo add aws-efs-csi-driver https://kubernetes-sigs.github.io/aws-efs-csi-driver/
+"aws-efs-csi-driver" has been added to your repositories
+[root@ip-20-0-102-181 JENKINS]# helm repo update
+Hang tight while we grab the latest from your chart repositories...
+...Successfully got an update from the "aws-efs-csi-driver" chart repository
+...Successfully got an update from the "aws-ebs-csi-driver" chart repository
+Update Complete. ⎈Happy Helming!⎈
+[root@ip-20-0-102-181 JENKINS]# helm upgrade --install aws-efs-csi-driver aws-efs-csi-driver/aws-efs-csi-driver \
+  --namespace kube-system \
+  --set controller.serviceAccount.create=false \
+  --set controller.serviceAccount.name=efs-csi-controller-sa
+Release "aws-efs-csi-driver" does not exist. Installing it now.
+NAME: aws-efs-csi-driver
+LAST DEPLOYED: Sun Dec  8 16:22:17 2024
+NAMESPACE: kube-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+To verify that aws-efs-csi-driver has started, run:
+
+    kubectl get pod -n kube-system -l "app.kubernetes.io/name=aws-efs-csi-driver,app.kubernetes.io/instance=aws-efs-csi-driver"
+[root@ip-20-0-102-181 JENKINS]#
+[root@ip-20-0-102-181 JENKINS]#
+[root@ip-20-0-102-181 JENKINS]#
+[root@ip-20-0-102-181 JENKINS]# kubectl get sa -n kube-system | grep efs
+efs-csi-node-sa                               0         36s
+[root@ip-20-0-102-181 JENKINS]#
+
+-------------------------------------------------------------------
+
+
+# deploy EFS storage driver
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+
+# get VPC ID
+aws eks describe-cluster --name getting-started-eks --query "cluster.resourcesVpcConfig.vpcId" --output text
+# Get CIDR range
+aws ec2 describe-vpcs --vpc-ids vpc-id --query "Vpcs[].CidrBlock" --output text
+
+# security for our instances to access file storage
+aws ec2 create-security-group --description efs-test-sg --group-name efs-sg --vpc-id VPC_ID
+aws ec2 authorize-security-group-ingress --group-id sg-xxx  --protocol tcp --port 2049 --cidr VPC_CIDR
+
+# create storage
+aws efs create-file-system --creation-token eks-efs
+
+# create mount point 
+aws efs create-mount-target --file-system-id FileSystemId --subnet-id SubnetID --security-group GroupID
+
+# grab our volume handle to update our PV YAML
+aws efs describe-file-systems --query "FileSystems[*].FileSystemId" --output text
+
+https://www.youtube.com/watch?v=eqOCdNO2Nmk
+
+
+
+vpc-0daaf20b3a5fab097
+10.0.0.0/16
+ "GroupId": "sg-0fa41024d1d251f7e"
+
+ "FileSystemId": "fs-0c088eebb8da64209"
+
+ aws ec2 authorize-security-group-ingress --group-id sg-0fa41024d1d251f7e  --protocol tcp --port 2049 --cidr 10.0.0.0/16
+
+ subnet-07d24574b0b103f36
+
+ aws efs create-mount-target --file-system-id fs-0c088eebb8da64209 --subnet-id subnet-07d24574b0b103f36 --security-group sg-0fa41024d1d251f7e
+
+ ---------------------------------------------------------------------------
+
+
+
+ apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jenkins
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: efs-sc
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-92b853aa
+
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 5Gi
