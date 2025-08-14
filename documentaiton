@@ -165,3 +165,6 @@ psql (15.9, server 13.21)
 SSL connection (protocol: TLSv1.2, cipher: ECDHE-RSA-AES256-GCM-SHA384, compression: off)
 You are now connected to database "gitlabhq_production" as user "gitlab".
 gitlabhq_production=> CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+
+If we want to connect to the rds from our local we need to enable the ssh and instance traffic from where wea re accesssing in the security group
