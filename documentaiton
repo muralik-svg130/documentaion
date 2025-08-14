@@ -142,3 +142,26 @@ spec:
 
 eksctl utils associate-iam-oidc-provider --cluster <cluster-name> --approve
 # Then install CSI driver...
+
+
+
+
+
+postgres=> CREATE DATABASE gitlabhq_production;
+\c gitlabhq_production
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE DATABASE
+invalid integer value "IF" for connection option "port"
+Previous connection kept
+postgres=> CREATE DATABASE gitlabhq_production;
+ERROR:  database "gitlabhq_production" already exists
+postgres=> gitlabhq_production
+postgres-> CREATE EXTENSION IF NOT EXISTS pg_trgm;
+ERROR:  syntax error at or near "gitlabhq_production"
+LINE 1: gitlabhq_production
+        ^
+postgres=> \c gitlabhq_production
+psql (15.9, server 13.21)
+SSL connection (protocol: TLSv1.2, cipher: ECDHE-RSA-AES256-GCM-SHA384, compression: off)
+You are now connected to database "gitlabhq_production" as user "gitlab".
+gitlabhq_production=> CREATE EXTENSION IF NOT EXISTS pg_trgm;
