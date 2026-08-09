@@ -168,3 +168,102 @@ gitlabhq_production=> CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 
 If we want to connect to the rds from our local we need to enable the ssh and instance traffic from where wea re accesssing in the security group
+
+
+helm install gitlab gitlab/gitlab   --version 9.8.12   -f values.yaml
+
+
+
+
+
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gitlab-minio-pv
+spec:
+  capacity:
+    storage: 60Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Retain
+
+  claimRef:
+    namespace: default
+    name: gitlab-minio
+
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: vol-084b489bad8a654e8
+    fsType: ext4
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gitlab-prometheus-pv
+spec:
+  capacity:
+    storage: 60Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Retain
+
+  claimRef:
+    namespace: default
+    name: gitlab-prometheus-server
+
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: vol-0ce511fc87cb53851
+    fsType: ext4
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gitlab-redis-pv
+spec:
+  capacity:
+    storage: 60Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Retain
+
+  claimRef:
+    namespace: default
+    name: redis-data-gitlab-redis-master-0
+
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: vol-06e0624729c4b96dc
+    fsType: ext4
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: gitlab-gitaly-pv
+spec:
+  capacity:
+    storage: 60Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Retain
+
+  claimRef:
+    namespace: default
+    name: repo-data-gitlab-gitaly-0
+
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: vol-0c0973bd128f98803
+    fsType: ext4
